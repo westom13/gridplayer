@@ -14,9 +14,9 @@ def apply_spatial_audio(player, column_index, total_columns,
     # ---- LEFT / RIGHT CHANNEL SPLIT ----
     midpoint = (total_columns - 1) / 2
 
-    if column_index < midpoint:
+    if column_index < (total_columns - 1) * 1 / 3:
         active_player.audio_set_channel(ctypes.c_int(3)) # Left
-    elif column_index > midpoint:
+    elif column_index > (total_columns - 1) * 2 / 3:
         active_player.audio_set_channel(ctypes.c_int(4)) # Right
     else:
         active_player.audio_set_channel(ctypes.c_int(1)) # Stereo
