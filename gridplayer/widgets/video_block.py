@@ -645,7 +645,7 @@ class VideoBlock(QWidget):
         # Resolve underlying VlcPlayerBase via driver API when possible
         player = self.video_driver.video_driver.get_vlc_player()
         
-        apply_spatial_audio(player, self._grid_position[0], self._grid_position[1])
+        apply_spatial_audio(player, self, self._grid_position[0], self._grid_position[1])
 
     def set_grid_position(self, index: int, total_count: int) -> None:
         """Update video's position in the grid."""
