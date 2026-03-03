@@ -27,3 +27,6 @@ def apply_spatial_audio(player, column_index, total_columns,
     volume = max_volume - (distance_from_center * volume_range)
 
     active_player.audio_set_volume(int(volume))
+
+    import logging
+    logging.getLogger(__name__).warning(f"Set audio channel and volume for column {column_index}/{total_columns}: channel={active_player.audio_get_channel()}, volume={active_player.audio_get_volume()}")
