@@ -64,22 +64,25 @@ def apply_stereo_pan(player: "VlcPlayerBase", pan: float) -> None:
     else:  # Pan right
         left_vol = 1.0 - pan   # (1.0 to 0.0)
         right_vol = 1.0
-    
-    # VLC uses equalizer and audio filters
-    # Better approach: Use VLC's audio matrixmixer filter
-    try:
-        # Set audio equalizer parameters if available
-        media_list = player._playlist_player.get_media_list()
-        if media_list and media_list.count() > 0:
-            media = media_list.item_at_index(0)
-            if media:
-                # Apply panning via audio filter option
-                filter_str = _build_matrixmixer_filter(pan)
-                player._media_player.set_audio_filter(filter_str)
-    except Exception as e:
-        import logging
-        logging.getLogger(__name__).warning(f"Failed to apply pan: {e}")
 
+    # 1. Get the actual MediaPlayer from the playlist manager
+    # MediaListPlayer uses an internal MediaPlayer to do the actual work.
+    active_player = player._playlist_player.get_media_player()
+
+    if active_player:
+        # 2. Build your filter string
+        filter_str = _build_matrixmixer_filter(pan)
+        
+        # 3. Apply it to the active player. 
+        # Note: In most VLC bindings, the method is audio_filter_set(), 
+        # but some custom wrappers use set_audio_filter().
+        try:
+            active_player.audio_filter_set(filter_str)
+            # To "kick" VLC into applying the change immediately:
+            active_player.audio_set_delay(0) 
+        except AttributeError:
+            # Fallback if your specific wrapper uses the other name
+            active_player.set_audio_filter(filter_str)
 
 def _build_matrixmixer_filter(pan: float) -> str:
     """
