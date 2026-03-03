@@ -202,7 +202,6 @@ class VideoBlock(QWidget):
         self.overlay.hide()
         
         self._grid_position = None
-        self._grid_total_count = None
 
     def init_video_driver(self) -> VideoFrameVLC:
         vlc_options = get_vlc_options(self.video_params)
@@ -641,7 +640,7 @@ class VideoBlock(QWidget):
 
     def _apply_spatial_balance(self) -> None:
         """Apply the spatial balance to the VLC player."""
-        self._log.debug(f"Applying spatial balance: {self._grid_position}, {self.video_params.grid_column}, {self.grid_total_count}")
+        self._log.debug(f"Applying spatial balance: {self._grid_position}, {self.video_params.grid_column}")
         
         # Resolve underlying VlcPlayerBase via driver API when possible
         player = self.video_driver.video_driver.get_vlc_player()
