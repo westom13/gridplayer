@@ -32,6 +32,14 @@ ACTIONS = MappingProxyType(
             "show_if": "is_more_than_one_video",
             "func": "toggle_single_video",
         },
+        "Spatial Audio": {
+            "title": translate("Audio", "Spatial Audio (Grid Position)"),
+            "icon": "stereo-mode",
+            "show_if": "is_videos",
+            "key": "F7",
+            "func": "toggle_spatial_audio",
+            "check_if": ("is_spatial_audio_enabled",),
+        },
         "Previous Video": {
             "title": translate("Actions", "Previous Video"),
             "key": "B",

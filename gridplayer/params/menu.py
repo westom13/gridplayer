@@ -47,6 +47,7 @@ SECTIONS = MappingProxyType(
             "Play / Pause",
             "---",
             "Single Mode ON / OFF",
+            "Spatial Audio",
             "Previous Video",
             "Next Video",
             "---",

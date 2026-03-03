@@ -31,6 +31,7 @@ from gridplayer.params.static import (
     VideoTransform,
 )
 from gridplayer.settings import Settings
+from gridplayer.utils.audio_panning import apply_stereo_pan, apply_channel_balance
 from gridplayer.utils.libvlc_options_parser import get_vlc_options
 from gridplayer.utils.next_file import next_video_file, previous_video_file
 from gridplayer.utils.qt import qt_connect, translate
@@ -150,6 +151,7 @@ class VideoBlock(QWidget):
     is_in_progress_change = pyqtSignal()
     is_active_change = pyqtSignal(bool)
     is_audio_present_change = pyqtSignal(bool)
+    spatial_balance_changed = pyqtSignal(float)
 
     def __init__(self, video_driver, context, **kwargs):
         super().__init__(**kwargs)
@@ -198,6 +200,9 @@ class VideoBlock(QWidget):
 
         self.video_status.show()
         self.overlay.hide()
+        
+        self._spatial_balance = 0.0
+        self._grid_position = None
 
     def init_video_driver(self) -> VideoFrameVLC:
         vlc_options = get_vlc_options(self.video_params)
@@ -633,6 +638,73 @@ class VideoBlock(QWidget):
             return self.video_driver.length - VIDEO_END_LOOP_MARGIN_MS
 
         return self.video_params.loop_end
+
+    @property
+    def spatial_balance(self) -> float:
+        """Get current spatial balance value."""
+        return self._spatial_balance
+
+    @spatial_balance.setter
+    def spatial_balance(self, balance: float) -> None:
+        """
+        Set spatial balance and apply to audio if spatial audio is enabled.
+        
+        Args:
+            balance: Pan value from -1.0 (left) to 1.0 (right)
+        """
+        if not -1.0 <= balance <= 1.0:
+            raise ValueError("Balance must be between -1.0 and 1.0")
+        
+        self._spatial_balance = balance
+        
+        # Apply to VLC if video is initialized and spatial audio enabled
+        if (
+            self.is_video_initialized
+            and self.video_params.spatial_balance_enabled
+        ):
+            self._apply_spatial_balance()
+        
+        self.spatial_balance_changed.emit(balance)
+
+    def _apply_spatial_balance(self) -> None:
+        """Apply the spatial balance to the VLC player."""
+        balance = self._spatial_balance
+            
+        self._log.debug(f"Applying spatial balance: {balance}")
+        
+        # Resolve underlying VlcPlayerBase via driver API when possible
+        player = None
+
+        get_player = getattr(self.video_driver, "get_vlc_player", None)
+        if callable(get_player):
+            player = get_player()
+        else:
+            # Fallback to legacy attribute discovery
+            if hasattr(self.video_driver, "video_driver"):
+                player = self.video_driver.video_driver
+            elif hasattr(self.video_driver, "player"):
+                player = self.video_driver.player
+            else:
+                player = self.video_driver
+
+        # Ensure the resolved object looks like a VlcPlayerBase (has `_media_player`)
+        if player is None or not hasattr(player, "_media_player"):
+            self._log.warning("Cannot apply spatial balance: underlying player missing _media_player")
+            return
+
+        # Use true panning with FFmpeg support:
+        apply_stereo_pan(player, balance)
+
+    def set_grid_position(self, index: int, total_count: int) -> None:
+        """Update video's position in the grid."""
+        from gridplayer.utils.audio_balance import calculate_balance_from_grid_position
+        
+        self._grid_position = (index, total_count)
+        self.video_params.grid_column = index
+        
+        # Calculate and apply balance
+        balance = calculate_balance_from_grid_position(index, total_count)
+        self.spatial_balance = balance
 
     @only_initialized
     def show_overlay(self):

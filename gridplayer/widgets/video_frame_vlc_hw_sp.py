@@ -183,6 +183,28 @@ class VideoDriverVLCHWSP(VLCVideoDriver):
         self.cmd_cleanup.emit()
         self.player.wait()
 
+    def get_vlc_player(self):
+        """
+        Return the underlying `VlcPlayerBase` (threaded player) when it's initialized.
+
+        Waits for the player init event to ensure `_media_player` is ready.
+        Returns `None` if the underlying player is not available.
+        """
+        if not hasattr(self, "player") or self.player is None:
+            return None
+
+        # Ensure the thread completed its init sequence
+        try:
+            self.player.wait_for_init()
+        except Exception:
+            # Be conservative: if waiting fails, fall through to check attribute
+            pass
+
+        if getattr(self.player, "_media_player", None) is not None:
+            return self.player
+
+        return None
+
     def load_video(self, media_input: MediaInput):
         self.cmd_load_video.emit(media_input)
 

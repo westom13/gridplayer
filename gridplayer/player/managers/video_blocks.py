@@ -138,6 +138,8 @@ class VideoBlocksManager(ManagerBase):
     all_volume_decrease = pyqtSignal()
     all_set_muted = pyqtSignal(bool)
 
+    all_spatial_balance_changed = pyqtSignal()
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
@@ -152,6 +154,8 @@ class VideoBlocksManager(ManagerBase):
 
         self._live_video_blocks = 0
         self._videos_to_reload = []
+
+        self._spatial_audio_enabled = True
 
     @property
     def commands(self):
@@ -182,6 +186,10 @@ class VideoBlocksManager(ManagerBase):
             "is_disable_wheel_seek": lambda: self._ctx.is_disable_wheel_seek,
             "set_disable_wheel_seek": self.set_disable_wheel_seek,
             "toggle_disable_wheel_seek": self.toggle_disable_wheel_seek,
+            "enable_spatial_audio": self.enable_spatial_audio,
+            "disable_spatial_audio": self.disable_spatial_audio,
+            "is_spatial_audio_enabled": lambda: self._spatial_audio_enabled,
+            "toggle_spatial_audio": self.toggle_spatial_audio,
         }
 
     def cmd_all(self, command, *args):
@@ -398,3 +406,56 @@ class VideoBlocksManager(ManagerBase):
 
             if self._videos_to_reload:
                 self.reload_videos_finish()
+
+    def enable_spatial_audio(self) -> None:
+        """Enable spatial audio for all videos."""
+        self._spatial_audio_enabled = True
+        self._update_all_spatial_positions()
+        self._log.info("Spatial audio enabled")
+
+    def disable_spatial_audio(self) -> None:
+        """Disable spatial audio for all videos."""
+        self._spatial_audio_enabled = False
+        # Reset all to stereo
+        for block in self._ctx.video_blocks:
+            block.video_params.spatial_balance_enabled = False
+            if block.is_video_initialized:
+                block.set_audio_channel_mode(AudioChannelMode.STEREO)
+        self._log.info("Spatial audio disabled")
+
+    def toggle_spatial_audio(self) -> None:
+        """Toggle spatial audio on/off."""
+        if self._spatial_audio_enabled:
+            self.disable_spatial_audio()
+        else:
+            self.enable_spatial_audio()
+
+    def _update_all_spatial_positions(self) -> None:
+        """Update spatial balance for all videos based on grid position."""
+        total = len(self._ctx.video_blocks)
+        
+        for index, block in enumerate(self._ctx.video_blocks):
+            block.video_params.spatial_balance_enabled = True
+            block.set_grid_position(index, total)
+            
+            self._log.debug(
+                f"Block {block.id}: balance={block.spatial_balance:.2f}, "
+                f"position={index+1}/{total}"
+            )
+        
+        self.all_spatial_balance_changed.emit()
+
+    def on_video_order_changed(self) -> None:
+        """Called when video order changes."""
+        if self._spatial_audio_enabled:
+            self._update_all_spatial_positions()
+
+    def on_video_added(self) -> None:
+        """Called when a video is added."""
+        if self._spatial_audio_enabled:
+            self._update_all_spatial_positions()
+
+    def on_video_removed(self) -> None:
+        """Called when a video is removed."""
+        if self._spatial_audio_enabled:
+            self._update_all_spatial_positions()

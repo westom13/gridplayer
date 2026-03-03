@@ -59,6 +59,9 @@ class Video(BaseModel):
 
     audio_channel_mode: AudioChannelMode = default_field("video_defaults/audio_mode")
 
+    spatial_balance_enabled: bool = True  # Enable/disable spatial audio
+    grid_column: int | None = None  # 0=left, 1=center, 2=right (auto-calculated)
+
     @property
     def uri_name(self) -> str:
         if isinstance(self.uri, Path):

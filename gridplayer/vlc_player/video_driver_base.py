@@ -1,10 +1,14 @@
 import logging
 from abc import abstractmethod
+from typing import TYPE_CHECKING
 
 from PyQt5.QtCore import QObject, pyqtSignal
 
 from gridplayer.utils.qt import QABC
 from gridplayer.vlc_player.static import Media, MediaInput
+
+if TYPE_CHECKING:
+    from gridplayer.vlc_player.player_base import VlcPlayerBase
 
 
 class VLCVideoDriver(QObject, metaclass=QABC):
@@ -75,3 +79,23 @@ class VLCVideoDriver(QObject, metaclass=QABC):
 
     def update_status_emit(self, status, percent):
         self.update_status.emit(status, percent)
+
+    def get_vlc_player(self) -> "VlcPlayerBase | None":
+        """
+        Return the underlying `VlcPlayerBase` instance when available.
+
+        Default implementation tries common attributes (`_media_player`,
+        `video_driver`, `player`) and returns the matching object or `None`.
+        """
+        # If this driver itself looks like a VlcPlayerBase, return it
+        if hasattr(self, "_media_player"):
+            return self  # type: ignore[return-value]
+
+        # Common wrapper attributes
+        if hasattr(self, "video_driver"):
+            return getattr(self, "video_driver")
+
+        if hasattr(self, "player"):
+            return getattr(self, "player")
+
+        return None
