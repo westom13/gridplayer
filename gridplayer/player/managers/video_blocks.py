@@ -439,7 +439,6 @@ class VideoBlocksManager(ManagerBase):
             block.set_grid_position(index, total)
             
             self._log.debug(
-                f"Block {block.id}: balance={block.spatial_balance:.2f}, "
                 f"position={index+1}/{total}"
             )
         
