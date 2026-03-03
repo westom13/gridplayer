@@ -1,4 +1,4 @@
-import vlc
+from gridplayer.vlc_player.libvlc import vlc
 
 def apply_spatial_audio(player, column_index, total_columns,
                         max_volume=100, min_volume=70):
@@ -24,4 +24,3 @@ def apply_spatial_audio(player, column_index, total_columns,
     volume = max_volume - (distance_from_center * volume_range)
 
     player.audio_set_volume(int(volume))
-    
