@@ -673,7 +673,7 @@ class VideoBlock(QWidget):
         self._log.debug(f"Applying spatial balance: {balance}")
         
         # Resolve underlying VlcPlayerBase via driver API when possible
-        player = self.video_driver.get_vlc_player()
+        player = self.video_driver.video_driver.get_vlc_player()
 
         # Use true panning with FFmpeg support:
         apply_stereo_pan(player, balance)
