@@ -673,24 +673,7 @@ class VideoBlock(QWidget):
         self._log.debug(f"Applying spatial balance: {balance}")
         
         # Resolve underlying VlcPlayerBase via driver API when possible
-        player = None
-
-        get_player = getattr(self.video_driver, "get_vlc_player", None)
-        if callable(get_player):
-            player = get_player()
-        else:
-            # Fallback to legacy attribute discovery
-            if hasattr(self.video_driver, "video_driver"):
-                player = self.video_driver.video_driver
-            elif hasattr(self.video_driver, "player"):
-                player = self.video_driver.player
-            else:
-                player = self.video_driver
-
-        # Ensure the resolved object looks like a VlcPlayerBase (has `_media_player`)
-        if player is None or not hasattr(player, "_media_player"):
-            self._log.warning("Cannot apply spatial balance: underlying player missing _media_player")
-            return
+        player = self.video_driver.get_vlc_player()
 
         # Use true panning with FFmpeg support:
         apply_stereo_pan(player, balance)

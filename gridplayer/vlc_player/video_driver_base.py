@@ -80,22 +80,24 @@ class VLCVideoDriver(QObject, metaclass=QABC):
     def update_status_emit(self, status, percent):
         self.update_status.emit(status, percent)
 
-    def get_vlc_player(self) -> "VlcPlayerBase | None":
+    def get_vlc_player(self):
         """
-        Return the underlying `VlcPlayerBase` instance when available.
-
-        Default implementation tries common attributes (`_media_player`,
-        `video_driver`, `player`) and returns the matching object or `None`.
+        Improved helper to find the actual VlcPlayer instance.
         """
-        # If this driver itself looks like a VlcPlayerBase, return it
+        # 1. Check if this object is the player itself
         if hasattr(self, "_media_player"):
-            return self  # type: ignore[return-value]
-
-        # Common wrapper attributes
-        if hasattr(self, "video_driver"):
-            return getattr(self, "video_driver")
-
-        if hasattr(self, "player"):
-            return getattr(self, "player")
-
+            return self
+            
+        # 2. Check for common 'player' or '_player' attributes in Drivers
+        # Most GridPlayer drivers store the VlcPlayer instance in self._player
+        for attr in ["_player", "player", "video_driver"]:
+            candidate = getattr(self, attr, None)
+            if candidate:
+                # Recursively check if the candidate has the media player
+                if hasattr(candidate, "_media_player"):
+                    return candidate
+                # One more level deep just in case
+                if hasattr(candidate, "player") and hasattr(candidate.player, "_media_player"):
+                    return candidate.player
+                    
         return None
